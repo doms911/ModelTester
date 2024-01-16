@@ -140,4 +140,6 @@ class appGUI:
         self.run_button.pack()
 
 
+print('Loading GUI...')
 gui = appGUI()
+
