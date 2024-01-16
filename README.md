@@ -4,5 +4,5 @@ Requires python >=3.9 <3.12.1 recommended v3.11.7 since tensorflow does not yet 
 ## Setup
 1. Make sure you have python with pip installed
 2. Open command line and run `git clone https://github.com/racunarko/ModelTester/`
-3. Then run `pip install -r requirements.txt` and wait
+3. Switch to the project directory with `cd ModelTester` then run `pip install -r requirements.txt` and wait for the installation to finish
 4. Open `main.py` with IDLE and click Run > Run module or press F5
