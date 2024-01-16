@@ -15,6 +15,7 @@ class appGUI:
         self.create_widgets()
         self.root.mainloop()
 
+# za dohvacanje imena modela
     def get_model_names(self):
         model_dir = 'models'
         if not os.path.exists(model_dir):
@@ -62,6 +63,7 @@ class appGUI:
         # Process the results (this will depend on your model's output)
         self.display_results(results)
 
+# ovo je preprocesiranje slike u 32x32 i normalizacija slike, ovo je za cifar10
     def preprocess_image(self, image):
         # Convert PIL image to an OpenCV image
         image = np.array(image)
@@ -82,6 +84,7 @@ class appGUI:
 
         return image_array
 
+# ovo je procesiranje rezultata za cifar10, treba dodati funkciju za bilo koji drugi dataset
     def process_results_cifar10(self, results):
         # Specific processing for model1
         global max
@@ -96,6 +99,7 @@ class appGUI:
                 break
         return classes[index]
 
+# ovdje treba pozivati posebne funkcije za razlicite modele
     def display_results(self, results):
         global result
         model_name = self.selectedModel.get()
