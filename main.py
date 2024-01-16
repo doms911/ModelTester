@@ -6,6 +6,8 @@ from keras.models import load_model
 import numpy as np
 import cv2
 
+print('Loading GUI...')
+
 class appGUI:
     def __init__(self):
         self.root = tk.Tk()
