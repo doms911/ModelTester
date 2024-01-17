@@ -65,17 +65,19 @@ class appGUI:
         # Process the results (this will depend on your model's output)
         self.display_results(results)
 
-# ovo je preprocesiranje slike u 32x32 i normalizacija slike, ovo je za cifar10
+# ovo je preprocesiranje slike u format koji odgovara modelu i normalizacija slike
     def preprocess_image(self, image):
         # Convert PIL image to an OpenCV image
         image = np.array(image)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        if self.model.input_shape[3] == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         # Resize the image using OpenCV
-        image = cv2.resize(image, (32, 32))
+        image = cv2.resize(image, (self.model.input_shape[1], self.model.input_shape[2]))
 
         # Convert back to RGB format if your model expects RGB inputs
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if self.model.input_shape[3] == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Normalize the image
         image = image / 255.0
@@ -105,6 +107,9 @@ class appGUI:
     def display_results(self, results):
         global result
         model_name = self.selectedModel.get()
+        if model_name == "mnist.h5":
+            print(results)
+            result = np.argmax(results)
         if model_name == 'cifar10.h5':
             print(results)
             result = self.process_results_cifar10(results)
