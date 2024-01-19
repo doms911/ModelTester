@@ -22,7 +22,7 @@ class appGUI:
         model_dir = 'models'
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        model_files = [f for f in os.listdir(model_dir) if f.endswith('.h5')]
+        model_files = [f for f in os.listdir(model_dir) if f.endswith('.h5') or f.endswith('.keras')]
         return model_files
 
     def load_model(self):
@@ -40,10 +40,7 @@ class appGUI:
             self.filepath_entry.insert(0, filepath)  # Insert the new filepath
             self.loaded_image = Image.open(filepath)
             self.display_image = self.loaded_image.resize((250, 250), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(self.display_image)
             messagebox.showinfo("Image Loaded", "Image loaded successfully!")
-
-
     def run_model(self):
         # Check if the model is loaded
         try:
@@ -91,14 +88,12 @@ class appGUI:
 # ovo je procesiranje rezultata za cifar10, treba dodati funkciju za bilo koji drugi dataset
     def process_results_cifar10(self, results):
         # Specific processing for model1
-        global max
         classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
         index = -1
         weight_table = results[0]
         n = len(weight_table)
-        max = np.max(weight_table)
         for i in range(0, n):
-            if weight_table[i] == max:
+            if weight_table[i] == np.max(weight_table):
                 index = i
                 break
         return classes[index]
@@ -107,10 +102,10 @@ class appGUI:
     def display_results(self, results):
         global result
         model_name = self.selectedModel.get()
-        if model_name == "mnist.h5":
+        if model_name.find("mnist") != -1:
             print(results)
             result = np.argmax(results)
-        if model_name == 'cifar10.h5':
+        if model_name.find('cifar10') != -1:
             print(results)
             result = self.process_results_cifar10(results)
         messagebox.showinfo("Results", "The picture displays " + str(result))
@@ -133,17 +128,18 @@ class appGUI:
         self.modelMenu = tk.OptionMenu(self.frame, self.selectedModel, *self.model_files)
         self.modelMenu.place(x=20, y=20, width=menu_width)
 
+        load_button_width = 100
         self.loadModelButton = tk.Button(self.frame, text="Load Model", command=self.load_model)
-        self.loadModelButton.place(x=20 + menu_width + 20, y=18)
+        self.loadModelButton.place(x=20 + menu_width + 20, y=18, width=load_button_width)
 
         # Choosing the picture
         self.browse_button = tk.Button(self.frame, text="Browse", command=self.load_image)
-        self.browse_button.place(x=60, y=60)
+        self.browse_button.place(x=20 + menu_width + 20, y=60, width=load_button_width)
 
         # Set an appropriate width for the Entry widget
         entry_width = 300
         self.filepath_entry = tk.Entry(self.frame, width=entry_width)
-        self.filepath_entry.place(x=60 + 80, y=60)  # Adjust the x coordinate as needed
+        self.filepath_entry.place(x=60 + 80, y=100)  # Adjust the x coordinate as needed
 
         # Run Model Button
         self.run_button = tk.Button(self.frame, text="Run Model", command=self.run_model)
