@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import os
 from keras.models import load_model
+from keras.preprocessing import image as keras_preprocessing
 import numpy as np
 import cv2
 
@@ -38,9 +39,15 @@ class appGUI:
         if filepath:
             self.filepath_entry.delete(0, tk.END)  # Clear the existing text
             self.filepath_entry.insert(0, filepath)  # Insert the new filepath
-            self.loaded_image = Image.open(filepath)
-            self.display_image = self.loaded_image.resize((250, 250), Image.Resampling.LANCZOS)
+
+            if self.selectedModel.get().find('OCR') != -1:
+                self.loaded_image = cv2.imread(filepath)
+                self.display_image = cv2.resize(self.loaded_image, (250, 250))
+            else:
+                self.loaded_image = Image.open(filepath)
+                self.display_image = self.loaded_image.resize((250, 250), Image.Resampling.LANCZOS)
             messagebox.showinfo("Image Loaded", "Image loaded successfully!")
+
     def run_model(self):
         # Check if the model is loaded
         try:
@@ -54,10 +61,15 @@ class appGUI:
             messagebox.showwarning("Warning", "Please load an image first.")
             return  # Exit the function if no image is loaded
 
-        processed_image = self.preprocess_image(self.loaded_image)
+        if self.selectedModel.get().find("OCR") == -1:
+            processed_image = self.preprocess_image(self.loaded_image)
 
-        # Run the model
-        results = self.model.predict(processed_image)
+            # Run the model
+            results = self.model.predict(processed_image)
+
+        else:
+            print("Runing OCR model")
+            results = self.process_OCR(self.loaded_image)
 
         # Process the results (this will depend on your model's output)
         self.display_results(results)
@@ -85,6 +97,62 @@ class appGUI:
 
         return image_array
 
+
+#rezanje slike prilikom segmentacije zbog izvlacenja konture
+    def min_value_OCR(self, position):
+        if position - 300 > 0:
+            return position - 300
+
+        return 0
+
+
+    def max_value_OCR(self, position, border):
+        if position + 300 < border:
+            return position + 300
+
+        return border
+
+#procesiranje slike za OCR
+    def process_OCR(self, image):
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        thresh_image = cv2.threshold(gray_image, 80, 255, cv2.THRESH_BINARY_INV)[1]
+
+        contours, hierarchy = cv2.findContours(thresh_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        sorted_contours = sorted(contours, key = cv2.contourArea, reverse = True)
+
+        results = [0, 0, 0, 0]
+            
+        for index in range(len(sorted_contours)):
+            contour_moments = cv2.moments(sorted_contours[index])
+
+            if contour_moments["m00"] < 2000.0:
+                break
+
+            cx = int(contour_moments["m10"] / contour_moments["m00"])
+            cy = int(contour_moments["m01"] / contour_moments["m00"])
+            
+            mask = np.zeros(thresh_image.shape, np.uint8)
+            cv2.drawContours(mask, sorted_contours, index, (255, 255, 255), -1)
+
+            newW = min(cx - self.min_value_OCR(cx), self.max_value_OCR(cx, 640) - cx)
+            newH = min(cy - self.min_value_OCR(cy), self.max_value_OCR(cy, 480) - cy)
+            mask = mask[cy - newH:cy + newH, cx - newW:cx + newW]
+            mask = cv2.resize(mask, (64, 64))
+            #showImage(mask, 5)
+            #cv.imwrite(adress, mask_copy_2)
+            test_image = keras_preprocessing.img_to_array(mask)
+            test_image = np.expand_dims(test_image, axis = 0)
+            test_image = np.vstack([test_image])
+            results = self.model.predict(test_image/255.0)
+            print("OCR: ", results)
+
+            if self.process_results_OCR(results) in ["H", "S", "U"]:
+                return results
+
+        return results
+
+
 # ovo je procesiranje rezultata za cifar10, treba dodati funkciju za bilo koji drugi dataset
     def process_results_cifar10(self, results):
         # Specific processing for model1
@@ -98,20 +166,37 @@ class appGUI:
                 break
         return classes[index]
 
+
+    
+# procesiranje rezultata za skraćeni OCR
+    def process_results_OCR(self, results):
+        classes = ["H", "NONE", "S", "U"]
+        result = "NOT CLASSIFIED"
+
+        for i in range(4):
+            if results[0][i] > 0.7:
+                result = classes[i]
+
+        return result
+
+
 # ovdje treba pozivati posebne funkcije za razlicite modele
     def display_results(self, results):
         global result
         model_name = self.selectedModel.get()
+
         if model_name.find("mnist") != -1:
             print(results)
             result = np.argmax(results)
         if model_name.find('cifar10') != -1:
             print(results)
             result = self.process_results_cifar10(results)
+        if model_name.find("OCR") != -1:
+            print(results)
+            result = self.process_results_OCR(results)
         messagebox.showinfo("Results", "The picture displays " + str(result))
 
     def create_widgets(self):
-
         self.root.resizable(False, False)  # Disable window resizing
 
         self.frame = tk.Frame(self.root, bg="gray")
